@@ -3,10 +3,10 @@ import json
 
 from time import sleep
 
-from pyrogram import Client
+from pyrogram import Client,enums
 from pyrogram.raw.functions.messages import Search
 from pyrogram.raw.types import InputPeerSelf, InputMessagesFilterEmpty
-from pyrogram.raw.types.messages import ChannelMessages
+
 from pyrogram.errors import FloodWait, UnknownError
 
 cachePath = os.path.abspath(__file__)
@@ -54,19 +54,15 @@ class Cleaner:
 
     @staticmethod
     def get_all_chats():
-        dialogs = app.get_dialogs(pinned_only=True)
-
-        dialog_chunk = app.get_dialogs()
-        while len(dialog_chunk) > 0:
-            dialogs.extend(dialog_chunk)
-            dialog_chunk = app.get_dialogs(offset_date=dialogs[-1].top_message.date-1)
-
+        dialogs = app.get_dialogs()
+        #for dialog in dialogs:
+        #    print(dialog.chat) if dialog.chat.type == enums.ChatType.SUPERGROUP else 0
         return [d.chat for d in dialogs]
 
     def select_groups(self, recursive=0):
         chats = self.get_all_chats()
-        groups = [c for c in chats if c.type in ('group', 'supergroup')]
-
+        groups = [c for c in chats if c.type == enums.ChatType.SUPERGROUP]
+        #print(groups)
         print('Delete all your messages in')
         for i, group in enumerate(groups):
             print(f'  {i+1}. {group.title}')
@@ -109,8 +105,8 @@ class Cleaner:
 
             while True:
                 q = self.search_messages(peer, add_offset)
-                message_ids.extend(msg.id for msg in q['messages'])
-                messages_count = len(q['messages'])
+                message_ids.extend(msg.id for msg in q.messages)
+                messages_count = len(q.messages)
                 print(f'Found {messages_count} of your messages in "{chat.title}"')
                 if messages_count < self.search_chunk_size:
                     break
@@ -129,7 +125,7 @@ class Cleaner:
 
     def search_messages(self, peer, add_offset):
         print(f'Searching messages. OFFSET: {add_offset}')
-        return app.send(
+        return app.invoke(
             Search(
                 peer=peer,
                 q='',
